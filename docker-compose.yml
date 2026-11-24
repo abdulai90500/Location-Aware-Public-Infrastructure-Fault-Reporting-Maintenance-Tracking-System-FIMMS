@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 16 with PostGIS Spatial Extension
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: fimms-postgis-db
+    restart: always
+    environment:
+      POSTGRES_DB: freetown_infrastructure_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: freetown_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d freetown_infrastructure_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Python FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fimms-fastapi-backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://postgres:freetown_secret@db:5432/freetown_infrastructure_db
+      SECRET_KEY: freetown-infrastructure-monitoring-secret-key-2026-fcc
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 3. Next.js Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fimms-nextjs-frontend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
