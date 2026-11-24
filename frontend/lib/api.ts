@@ -1,4 +1,4 @@
-const API_BASE = typeof window !== "undefined" ? "" : "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? "" : "http://localhost:8000");
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};

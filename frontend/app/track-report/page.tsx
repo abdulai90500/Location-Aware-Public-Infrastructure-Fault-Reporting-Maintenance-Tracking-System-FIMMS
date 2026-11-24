@@ -176,6 +176,15 @@ function TrackReportContent() {
       {/* Selected Report Details View */}
       {report && (
         <div ref={reportDetailsRef} className="space-y-6 scroll-mt-24">
+          {report.status === "Submitted" && (
+            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-300 text-xs font-semibold flex items-center space-x-3 shadow-xs">
+              <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              <div>
+                <strong>Report Lodged Successfully:</strong> Tracking reference <strong className="font-mono">{report.tracking_number}</strong> has been registered in the municipal intake queue and is pending administrative review.
+              </div>
+            </div>
+          )}
+
           {/* SPECIAL CELEBRATION CALLOUT IF SOLVED / RESOLVED */}
           {isSolved && (
             <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-teal-500/15 dark:from-emerald-950/60 dark:to-teal-950/40 border-2 border-emerald-500 dark:border-emerald-600 shadow-xl space-y-4">

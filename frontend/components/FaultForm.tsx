@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import {
   Camera, MapPin, Navigation, AlertTriangle, CheckCircle, Upload,
   Wrench, Lightbulb, Droplets, Footprints, Trash2, ShieldAlert, ArrowRight,
-  Sparkles, ThumbsUp, Layers, Copy, Check, Eye
+  Sparkles, ThumbsUp, Layers, Copy, Check, Eye, Clock
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Category, DuplicateCandidate, AIClassificationResult } from "@/types";
 import MapView from "./MapView";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const FREETOWN_COMMUNITIES = [
   "Central Freetown",
@@ -71,11 +72,31 @@ export default function FaultForm() {
   const [duplicateAlertDismissed, setDuplicateAlertDismissed] = useState(false);
   const [upvoteMessage, setUpvoteMessage] = useState<string | null>(null);
 
+  const router = useRouter();
+
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [submittedReport, setSubmittedReport] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedTracking, setCopiedTracking] = useState(false);
+  const [countdown, setCountdown] = useState<number>(4);
+
+  // Auto-redirect to tracking view after successful submission
+  useEffect(() => {
+    if (!submittedReport) return;
+    setCountdown(4);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          router.push(`/track-report?tracking=${submittedReport.tracking_number}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [submittedReport, router]);
 
   // Scan duplicates when location or category changes
   const runDuplicateScan = async (lat: number, lng: number, catId?: number | null) => {
@@ -218,95 +239,99 @@ export default function FaultForm() {
     };
 
     return (
-      <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl mx-auto text-center space-y-6">
-        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50 dark:ring-emerald-950/30">
-          <CheckCircle className="w-12 h-12" />
-        </div>
-        <div className="space-y-2">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-            Official Municipal Submission
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-            FAULT REPORT SUBMITTED!
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-            Your complaint has been securely registered in the Western Area Urban infrastructure database. A notification has been queued for municipal dispatch.
-          </p>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+        <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl w-full text-center space-y-5 my-auto animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50 dark:ring-emerald-950/30">
+            <CheckCircle className="w-12 h-12" />
+          </div>
 
-        {/* Tracking Number Card */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 text-left space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
-            <div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                Official Tracking Number
-              </span>
-              <span className="font-mono text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
-                {submittedReport.tracking_number}
-              </span>
+          <div className="space-y-1.5">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+              Official Municipal Confirmation
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              FAULT REPORT SUBMITTED!
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+              Your report has been successfully recorded in the Freetown municipal queue and is ready for inspection.
+            </p>
+          </div>
+
+          {/* Auto-redirect countdown pill */}
+          <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <Clock className="w-3.5 h-3.5 animate-spin" />
+            <span>Automatically taking you to your live report in {countdown}s...</span>
+          </div>
+
+          {/* Tracking Number Card */}
+          <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 text-left space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Official Tracking Number
+                </span>
+                <span className="font-mono text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                  {submittedReport.tracking_number}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 transition shadow-sm"
+              >
+                {copiedTracking ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-600 font-bold">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Copy Reference</span>
+                  </>
+                )}
+              </button>
             </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-slate-400">Community:</span>
+                <p className="font-bold text-slate-800 dark:text-slate-200">{submittedReport.community}</p>
+              </div>
+              <div>
+                <span className="text-slate-400">Current Status:</span>
+                <p className="font-bold text-emerald-700 dark:text-emerald-400">{submittedReport.status}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+            <Link
+              href={`/track-report?tracking=${submittedReport.tracking_number}`}
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-1.5"
+            >
+              <span>View My Report Now</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
             <button
               type="button"
-              onClick={handleCopy}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 transition shadow-sm"
+              onClick={() => {
+                setSubmittedReport(null);
+                setTitle("");
+                setDescription("");
+                setPhotoFile(null);
+                setPhotoPreview(null);
+              }}
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
-              {copiedTracking ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-600 font-bold">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-slate-500" />
-                  <span>Copy Reference</span>
-                </>
-              )}
+              Submit Another Fault
             </button>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <span className="text-slate-400">Community:</span>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{submittedReport.community}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Current Status:</span>
-              <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">{submittedReport.status}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">GPS Coordinates:</span>
-              <p className="font-mono text-slate-800 dark:text-slate-200">{submittedReport.latitude.toFixed(4)}, {submittedReport.longitude.toFixed(4)}</p>
-            </div>
-            <div>
-              <span className="text-slate-400">Severity Level:</span>
-              <p className="font-bold capitalize text-rose-600 dark:text-rose-400">{submittedReport.severity}</p>
-            </div>
-          </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <Link
-            href={`/track-report?tracking=${submittedReport.tracking_number}`}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2"
-          >
-            <Eye className="w-4 h-4" />
-            <span>View &amp; Read Full Report</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/track-report?tab=solved"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm transition flex items-center justify-center space-x-2"
-          >
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
-            <span>Browse Solved Faults</span>
-          </Link>
-          <button
-            onClick={() => {
-              setSubmittedReport(null);
-              setTitle("");
-              setDescription("");
-              setPhotoFile(null);
+      </div>
+    );
+  }
               setPhotoPreview(null);
             }}
             className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
@@ -642,14 +667,24 @@ export default function FaultForm() {
       </div>
 
       {/* Submit Button */}
-      <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        {errorMessage && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs font-semibold flex items-center space-x-2">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-600" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={submitting}
           className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-lg shadow-emerald-600/25 transition disabled:opacity-50 flex items-center justify-center space-x-2"
         >
           {submitting ? (
-            <span>Transmitting Complaint & GPS...</span>
+            <div className="flex items-center space-x-2">
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Transmitting Complaint &amp; GPS to Freetown Queue...</span>
+            </div>
           ) : (
             <>
               <span>Submit Fault Report</span>
