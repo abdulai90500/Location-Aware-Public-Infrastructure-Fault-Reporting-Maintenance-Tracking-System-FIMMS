@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   Camera, MapPin, Navigation, AlertTriangle, CheckCircle, Upload,
   Wrench, Lightbulb, Droplets, Footprints, Trash2, ShieldAlert, ArrowRight,
-  Sparkles, ThumbsUp, Layers
+  Sparkles, ThumbsUp, Layers, Copy, Check, Eye
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Category, DuplicateCandidate, AIClassificationResult } from "@/types";
@@ -51,7 +51,7 @@ export default function FaultForm() {
   const [locationName, setLocationName] = useState("");
   const [landmark, setLandmark] = useState("");
   const [severity, setSeverity] = useState("medium");
-  
+
   // GPS State
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
     lat: 8.4840,
@@ -75,6 +75,7 @@ export default function FaultForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submittedReport, setSubmittedReport] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedTracking, setCopiedTracking] = useState(false);
 
   // Scan duplicates when location or category changes
   const runDuplicateScan = async (lat: number, lng: number, catId?: number | null) => {
@@ -82,7 +83,7 @@ export default function FaultForm() {
       const res = await api.checkDuplicates(lat, lng, catId || undefined, 400);
       setDuplicates(res.candidates || []);
       setDuplicateAlertDismissed(false);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -208,52 +209,97 @@ export default function FaultForm() {
   };
 
   if (submittedReport) {
+    const handleCopy = () => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(submittedReport.tracking_number);
+        setCopiedTracking(true);
+        setTimeout(() => setCopiedTracking(false), 2500);
+      }
+    };
+
     return (
-      <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto text-center space-y-6">
-        <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
-          <CheckCircle className="w-10 h-10" />
+      <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto shadow-inner ring-8 ring-emerald-50 dark:ring-emerald-950/30">
+          <CheckCircle className="w-12 h-12" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Fault Report Submitted!</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Thank you for helping keep Freetown clean, safe, and functioning. Your complaint has been lodged into the municipal queue.
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+            Official Municipal Submission
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+            FAULT REPORT SUBMITTED!
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+            Your complaint has been securely registered in the Western Area Urban infrastructure database. A notification has been queued for municipal dispatch.
           </p>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-left space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking Number</span>
-            <span className="font-mono text-base font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              {submittedReport.tracking_number}
-            </span>
+        {/* Tracking Number Card */}
+        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 text-left space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+            <div>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                Official Tracking Number
+              </span>
+              <span className="font-mono text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400">
+                {submittedReport.tracking_number}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 transition shadow-sm"
+            >
+              {copiedTracking ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-600 font-bold">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-slate-500" />
+                  <span>Copy Reference</span>
+                </>
+              )}
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <span className="text-slate-400">Community:</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">{submittedReport.community}</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{submittedReport.community}</p>
             </div>
             <div>
-              <span className="text-slate-400">Status:</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">{submittedReport.status}</p>
+              <span className="text-slate-400">Current Status:</span>
+              <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">{submittedReport.status}</p>
             </div>
             <div>
-              <span className="text-slate-400">Coordinates:</span>
+              <span className="text-slate-400">GPS Coordinates:</span>
               <p className="font-mono text-slate-800 dark:text-slate-200">{submittedReport.latitude.toFixed(4)}, {submittedReport.longitude.toFixed(4)}</p>
             </div>
             <div>
-              <span className="text-slate-400">Severity:</span>
-              <p className="font-semibold capitalize text-slate-800 dark:text-slate-200">{submittedReport.severity}</p>
+              <span className="text-slate-400">Severity Level:</span>
+              <p className="font-bold capitalize text-rose-600 dark:text-rose-400">{submittedReport.severity}</p>
             </div>
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <Link
             href={`/track-report?tracking=${submittedReport.tracking_number}`}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white font-semibold text-sm hover:bg-slate-800 dark:hover:bg-emerald-700 transition flex items-center justify-center space-x-2"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2"
           >
-            <span>Track This Report</span>
+            <Eye className="w-4 h-4" />
+            <span>View &amp; Read Full Report</span>
             <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/track-report?tab=solved"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm transition flex items-center justify-center space-x-2"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>Browse Solved Faults</span>
           </Link>
           <button
             onClick={() => {
@@ -263,9 +309,9 @@ export default function FaultForm() {
               setPhotoFile(null);
               setPhotoPreview(null);
             }}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
           >
-            Submit Another Fault
+            Report Another
           </button>
         </div>
       </div>
@@ -354,15 +400,13 @@ export default function FaultForm() {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
-                  isSelected
-                    ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/50 ring-2 ring-emerald-500/30 text-emerald-950 dark:text-emerald-200 font-bold shadow-sm"
-                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
+                className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${isSelected
+                  ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/50 ring-2 ring-emerald-500/30 text-emerald-950 dark:text-emerald-200 font-bold shadow-sm"
+                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
-                  isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
@@ -416,13 +460,12 @@ export default function FaultForm() {
                 key={lvl.id}
                 type="button"
                 onClick={() => setSeverity(lvl.id)}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold capitalize transition ${
-                  severity === lvl.id
-                    ? lvl.id === "critical"
-                      ? "bg-rose-600 text-white border-rose-600 shadow-sm"
-                      : "bg-slate-900 dark:bg-emerald-600 text-white border-slate-900 dark:border-emerald-600 shadow-sm"
-                    : `bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 ${lvl.color}`
-                }`}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold capitalize transition ${severity === lvl.id
+                  ? lvl.id === "critical"
+                    ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                    : "bg-slate-900 dark:bg-emerald-600 text-white border-slate-900 dark:border-emerald-600 shadow-sm"
+                  : `bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 ${lvl.color}`
+                  }`}
               >
                 {lvl.label}
               </button>
