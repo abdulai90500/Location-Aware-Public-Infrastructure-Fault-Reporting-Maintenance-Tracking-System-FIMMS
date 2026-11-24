@@ -7,11 +7,12 @@ import datetime
 import math
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import desc
 from backend.app.database import get_db
 from backend.app.models.models import (
-    FaultReport, InfrastructureCategory, ReportImage, User, Notification, AuditLog
+    FaultReport, InfrastructureCategory, ReportImage, User, Notification, AuditLog,
+    MaintenanceAssignment, MaintenanceUpdate
 )
 from backend.app.schemas.schemas import (
     FaultReportCreate, FaultReportResponse, FaultReportStatusUpdate, ReportImageResponse,
@@ -111,7 +112,13 @@ def list_reports(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
 ):
-    query = db.query(FaultReport)
+    query = db.query(FaultReport).options(
+        joinedload(FaultReport.category),
+        joinedload(FaultReport.citizen),
+        selectinload(FaultReport.images),
+        selectinload(FaultReport.assignments).joinedload(MaintenanceAssignment.team),
+        selectinload(FaultReport.updates).joinedload(MaintenanceUpdate.officer)
+    )
 
     if category_id:
         query = query.filter(FaultReport.category_id == category_id)
@@ -265,7 +272,13 @@ def check_duplicate_reports(
     Scans open faults within radius_meters to prevent redundant complaints.
     """
     open_statuses = ["Submitted", "Under Review", "Assigned", "In Progress"]
-    query = db.query(FaultReport).filter(FaultReport.status.in_(open_statuses))
+    query = db.query(FaultReport).options(
+        joinedload(FaultReport.category),
+        joinedload(FaultReport.citizen),
+        selectinload(FaultReport.images),
+        selectinload(FaultReport.assignments).joinedload(MaintenanceAssignment.team),
+        selectinload(FaultReport.updates).joinedload(MaintenanceUpdate.officer)
+    ).filter(FaultReport.status.in_(open_statuses))
 
     if req.category_id:
         query = query.filter(FaultReport.category_id == req.category_id)
@@ -340,7 +353,13 @@ def export_reports_csv(
     """
     Export fault reports as CSV for official Freetown City Council reporting.
     """
-    query = db.query(FaultReport)
+    query = db.query(FaultReport).options(
+        joinedload(FaultReport.category),
+        joinedload(FaultReport.citizen),
+        selectinload(FaultReport.images),
+        selectinload(FaultReport.assignments).joinedload(MaintenanceAssignment.team),
+        selectinload(FaultReport.updates).joinedload(MaintenanceUpdate.officer)
+    )
     if status_filter:
         query = query.filter(FaultReport.status == status_filter)
     if community:

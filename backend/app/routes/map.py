@@ -78,12 +78,12 @@ def get_nearby_faults(
         rows = db.execute(sql, {"lat": lat, "lng": lng, "radius": radius_km}).mappings().all()
         return [dict(r) for r in rows]
     else:
-        # PostGIS query using ST_DWithin
+        # PostGIS query using ST_DWithin and geography point calculation
         sql = text("""
             SELECT id, tracking_number, title, latitude, longitude, community, status, severity,
-                   ST_Distance(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0 AS distance_km
+                   ST_Distance(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0 AS distance_km
             FROM fault_reports
-            WHERE ST_DWithin(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius_meters)
+            WHERE ST_DWithin(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius_meters)
             ORDER BY distance_km ASC
         """)
         rows = db.execute(sql, {"lat": lat, "lng": lng, "radius_meters": radius_km * 1000.0}).mappings().all()

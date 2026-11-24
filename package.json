@@ -1,0 +1,13 @@
+{
+  "name": "fimms-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Freetown Infrastructure Monitoring and Maintenance System (FIMMS)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint",
+    "backend": "py -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
+  }
+}
