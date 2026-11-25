@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Sun, Moon, Lock, ArrowRight } from "lucide-react";
 import Sidebar from "./Sidebar";
 import AppHeader from "./AppHeader";
 import { ThemeProvider, useTheme } from "./ThemeContext";
+import { api } from "@/lib/api";
 
 function AuthHeader() {
   const { theme, toggleTheme } = useTheme();
@@ -48,9 +49,18 @@ function AuthHeader() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const pathname = usePathname();
 
+  useEffect(() => {
+    const user = api.getCurrentUser();
+    setCurrentUserRole(user?.role || null);
+  }, [pathname]);
+
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const staffOnlyPaths = ["/admin", "/maintenance", "/supervisor", "/analytics"];
+  const isCitizenBlockedFromStaff =
+    currentUserRole === "citizen" && staffOnlyPaths.includes(pathname);
 
   return (
     <ThemeProvider>
@@ -85,7 +95,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <AppHeader onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
             
             <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl w-full mx-auto">
-              {children}
+              {isCitizenBlockedFromStaff ? (
+                <div className="max-w-lg mx-auto my-12 bg-white dark:bg-[#1E293B] rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-lg text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+                    <Lock className="w-7 h-7" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                    Personal Citizen Account Only
+                  </h2>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Municipal staff portals are restricted to authorized Government &amp; City Council personnel. Your account is configured to view and manage your own submitted reports only.
+                  </p>
+                  <div className="pt-2">
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition"
+                    >
+                      <span>Go to My Account &amp; Faults</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                children
+              )}
             </main>
 
             <footer className="py-6 px-4 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0F172A] text-center text-xs text-slate-500 dark:text-slate-400 no-print">

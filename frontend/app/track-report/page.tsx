@@ -37,7 +37,11 @@ function TrackReportContent() {
   const loadFeedReports = async () => {
     try {
       setFeedLoading(true);
-      const data = await api.getReports({ limit: 50 });
+      const user = api.getCurrentUser();
+      const data =
+        user && user.role === "citizen"
+          ? await api.getMyReports()
+          : await api.getReports({ limit: 50 });
       setFeedReports(data || []);
       setFeedLoading(false);
     } catch (err) {
@@ -47,7 +51,11 @@ function TrackReportContent() {
   };
 
   useEffect(() => {
-    setCurrentUser(api.getCurrentUser());
+    const user = api.getCurrentUser();
+    setCurrentUser(user);
+    if (user && user.role === "citizen" && initialTab !== "solved") {
+      setActiveTab("my_reports");
+    }
     loadFeedReports();
   }, []);
 

@@ -22,14 +22,21 @@ export default function LoginPage() {
     setCurrentUser(api.getCurrentUser());
   }, []);
 
+  const getPortalForRole = (role?: string) => {
+    if (role === "administrator") return "/admin";
+    if (role === "maintenance_officer") return "/maintenance";
+    if (role === "supervisor") return "/supervisor";
+    return "/dashboard";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError(null);
-      await api.login(email, password);
+      const data = await api.login(email, password);
       setLoading(false);
-      window.location.href = "/";
+      window.location.href = getPortalForRole(data?.user?.role);
     } catch (err: any) {
       setError(err.message || "Failed to log in");
       setLoading(false);
@@ -40,9 +47,9 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      await api.login(demoEmail, "Freetown2026!");
+      const data = await api.login(demoEmail, "Freetown2026!");
       setLoading(false);
-      window.location.href = "/";
+      window.location.href = getPortalForRole(data?.user?.role);
     } catch (err: any) {
       setError(err.message || "Failed demo login");
       setLoading(false);

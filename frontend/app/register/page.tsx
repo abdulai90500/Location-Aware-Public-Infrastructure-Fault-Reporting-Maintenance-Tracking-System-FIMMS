@@ -26,7 +26,7 @@ export default function RegisterPage() {
         role: "citizen",
       });
       setLoading(false);
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message || "Failed to register account");
       setLoading(false);

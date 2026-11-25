@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Eye, UserCheck, RefreshCw, MapPin, AlertCircle } from "lucide-react";
+import { Eye, UserCheck, RefreshCw, MapPin, AlertCircle, Volume2 } from "lucide-react";
 import { FaultReport, MaintenanceTeam } from "@/types";
 import StatusBadge from "./StatusBadge";
 
@@ -99,7 +99,21 @@ export default function ReportTable({
                       </Link>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 dark:text-white max-w-xs truncate">{report.title}</div>
+                      <div className="font-bold text-slate-900 dark:text-white max-w-xs truncate flex items-center space-x-1.5">
+                        <span className="truncate">{report.title}</span>
+                        {report.images?.some(
+                          (img) =>
+                            img.image_type === "audio_note" ||
+                            img.image_url?.endsWith(".webm") ||
+                            img.image_url?.endsWith(".wav") ||
+                            img.image_url?.endsWith(".mp3")
+                        ) && (
+                          <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold flex-shrink-0" title="Citizen Voice Note Attached">
+                            <Volume2 className="w-3 h-3" />
+                            <span>Voice</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400">{report.category?.category_name}</div>
                     </td>
                     <td className="py-3.5 px-4">
