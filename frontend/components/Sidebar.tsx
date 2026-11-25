@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, MapPin, PlusCircle, Search, ShieldAlert,
   Wrench, CheckCircle2, BarChart3, Sun, Moon, Download,
-  Printer, LogOut, User as UserIcon, X, Sparkles, FileText, ChevronRight
+  Printer, LogOut, LogIn, User as UserIcon, X, Sparkles, FileText, ChevronRight
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { User } from "@/types";
@@ -212,7 +212,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* User Profile or Fast Demo Switcher */}
+          {/* User Profile & Prominent Logout Button */}
           {currentUser ? (
             <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div className="flex items-center space-x-2.5 overflow-hidden">
@@ -229,16 +229,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={api.logout}
-                title="Sign out"
-                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                title="Sign out of system"
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white dark:bg-rose-950/60 dark:hover:bg-rose-600 dark:text-rose-300 dark:hover:text-white font-bold text-xs transition border border-rose-200 dark:border-rose-900 shadow-xs"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
               </button>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+            <div className="space-y-2">
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In to Portal</span>
+              </Link>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center pt-1">
                 Demo Quick Access
               </div>
               <div className="grid grid-cols-2 gap-1.5">

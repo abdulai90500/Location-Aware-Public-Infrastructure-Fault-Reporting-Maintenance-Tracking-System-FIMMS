@@ -185,11 +185,13 @@ export default function Navbar() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={api.logout}
-                  title="Sign out"
-                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                  title="Sign out of FIMMS"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 font-bold text-xs transition shadow-xs"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
                 </button>
               </div>
             ) : (
@@ -281,10 +283,12 @@ export default function Navbar() {
                   <div className="text-xs text-slate-500 capitalize">{currentUser.role.replace("_", " ")}</div>
                 </div>
                 <button
+                  type="button"
                   onClick={api.logout}
-                  className="px-3 py-1.5 text-xs font-semibold text-rose-600 border border-rose-200 rounded-lg"
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl transition shadow-xs"
                 >
-                  Sign Out
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
                 </button>
               </div>
             ) : (

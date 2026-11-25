@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Menu, Bell, Sun, Moon, Printer, Download, Search, CheckCircle2,
-  ShieldAlert, Wrench, MapPin, ArrowRight
+  ShieldAlert, Wrench, MapPin, ArrowRight, LogOut, LogIn, User as UserIcon
 } from "lucide-react";
 import { useTheme } from "./ThemeContext";
 import { api } from "@/lib/api";
@@ -75,6 +75,11 @@ export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
 
         <div>
           <h2 className="text-sm font-black text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
+            <span className="inline-flex w-4 h-3 rounded-xs overflow-hidden flex-col shadow-xs border border-slate-300 dark:border-slate-700" title="Republic of Sierra Leone">
+              <span className="h-1 bg-[#1EB53A]" />
+              <span className="h-1 bg-[#FFFFFF]" />
+              <span className="h-1 bg-[#0072C6]" />
+            </span>
             <span>{getPageTitle()}</span>
           </h2>
           <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400">
@@ -186,6 +191,39 @@ export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
             </div>
           )}
         </div>
+
+        {/* User Session & Direct Logout Button */}
+        {currentUser ? (
+          <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <div className="hidden sm:block text-right">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">
+                {currentUser.full_name}
+              </div>
+              <div className="text-[10px] capitalize text-emerald-600 dark:text-emerald-400 font-semibold">
+                {currentUser.role.replace("_", " ")}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => api.logout()}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 dark:bg-rose-950/60 dark:hover:bg-rose-600 text-rose-600 hover:text-white dark:text-rose-300 dark:hover:text-white border border-rose-200 dark:border-rose-900 font-bold text-xs transition shadow-xs"
+              title="Sign out of FIMMS"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <Link
+              href="/login"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-bold text-xs transition shadow-xs"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login</span>
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );
