@@ -194,6 +194,14 @@ export default function FaultForm() {
       setErrorMessage("Please select an infrastructure category");
       return;
     }
+    if (!title || !title.trim()) {
+      setErrorMessage("Please provide a title for the fault report");
+      return;
+    }
+    if (!description || !description.trim()) {
+      setErrorMessage("Please provide a description of the infrastructure fault");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -202,13 +210,13 @@ export default function FaultForm() {
       // 1. Create Fault Report
       const report = await api.createReport({
         category_id: selectedCategory,
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         latitude: coords.lat,
         longitude: coords.lng,
-        location_name: locationName || undefined,
+        location_name: locationName.trim() || undefined,
         community,
-        landmark: landmark || undefined,
+        landmark: landmark.trim() || undefined,
         severity,
       });
 
@@ -328,16 +336,6 @@ export default function FaultForm() {
               Submit Another Fault
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-              setPhotoPreview(null);
-            }}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-          >
-            Report Another
-          </button>
         </div>
       </div>
     );

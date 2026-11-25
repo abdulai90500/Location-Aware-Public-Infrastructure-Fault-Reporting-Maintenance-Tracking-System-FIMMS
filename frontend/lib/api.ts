@@ -11,7 +11,21 @@ async function handleResponse(res: Response) {
     let errorDetail = "An unexpected error occurred";
     try {
       const err = await res.json();
-      errorDetail = err.detail || err.message || JSON.stringify(err);
+      if (Array.isArray(err.detail)) {
+        errorDetail = err.detail
+          .map((d: any) => {
+            const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : "";
+            const msg = d.msg || "Invalid value";
+            return field ? `${field}: ${msg}` : msg;
+          })
+          .join("; ");
+      } else if (typeof err.detail === "string") {
+        errorDetail = err.detail;
+      } else if (err.message) {
+        errorDetail = err.message;
+      } else {
+        errorDetail = JSON.stringify(err);
+      }
     } catch {
       errorDetail = await res.text();
     }

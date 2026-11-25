@@ -120,8 +120,8 @@ class MaintenanceUpdateResponse(BaseModel):
 # ==================== Fault Report Schemas ====================
 class FaultReportCreate(BaseModel):
     category_id: int
-    title: str = Field(..., min_length=3, max_length=255)
-    description: str = Field(..., min_length=10)
+    title: str = Field(..., min_length=2, max_length=255)
+    description: str = Field(..., min_length=2)
     latitude: float
     longitude: float
     location_name: Optional[str] = None
