@@ -22,8 +22,12 @@ from backend.app.auth.dependencies import get_current_user, get_current_user_opt
 
 router = APIRouter(prefix="/api/reports", tags=["Fault Reports"])
 
-# Local uploads directory
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+# Local uploads directory (use /tmp on Vercel serverless filesystem)
+UPLOAD_DIR = (
+    "/tmp/uploads"
+    if os.getenv("VERCEL")
+    else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

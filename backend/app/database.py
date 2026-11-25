@@ -6,7 +6,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fimms.db")
+default_sqlite = "sqlite:////tmp/fimms.db" if os.getenv("VERCEL") else "sqlite:///./fimms.db"
+DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite)
 
 # PostgreSQL vs SQLite configuration
 if DATABASE_URL.startswith("sqlite"):

@@ -415,7 +415,7 @@ function TrackReportContent() {
 
                   const fullMediaUrl = img.image_url.startsWith("http")
                     ? img.image_url
-                    : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${img.image_url}`;
+                    : `${process.env.NEXT_PUBLIC_API_URL || ""}${img.image_url}`;
 
                   return (
                     <div

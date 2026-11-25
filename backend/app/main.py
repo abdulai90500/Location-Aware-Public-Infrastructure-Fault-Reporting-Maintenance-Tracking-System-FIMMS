@@ -16,8 +16,12 @@ from backend.app.routes.audit import router as audit_router
 from backend.app.routes.ai import router as ai_router
 from backend.app.routes.notifications import router as notifications_router
 
-# Ensure uploads directory exists
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+# Ensure uploads directory exists (use /tmp on Vercel serverless filesystem)
+UPLOAD_DIR = (
+    "/tmp/uploads"
+    if os.getenv("VERCEL")
+    else os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Create tables and seed data on startup

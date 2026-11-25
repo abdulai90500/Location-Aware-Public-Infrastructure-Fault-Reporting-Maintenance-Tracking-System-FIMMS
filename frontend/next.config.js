@@ -5,14 +5,18 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
+    if (process.env.VERCEL) {
+      return [];
+    }
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8000/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: "/uploads/:path*",
-        destination: "http://localhost:8000/uploads/:path*",
+        destination: `${backendUrl}/uploads/:path*`,
       },
     ];
   },
