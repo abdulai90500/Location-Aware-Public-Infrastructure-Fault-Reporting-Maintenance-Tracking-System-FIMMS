@@ -23,7 +23,6 @@ export default function LoginPage() {
   }, []);
 
   const getPortalForRole = (role?: string) => {
-    if (role === "administrator") return "/admin";
     if (role === "maintenance_officer") return "/maintenance";
     if (role === "supervisor") return "/supervisor";
     return "/dashboard";

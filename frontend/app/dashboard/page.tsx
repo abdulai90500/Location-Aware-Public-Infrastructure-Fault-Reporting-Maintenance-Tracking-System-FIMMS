@@ -43,7 +43,7 @@ export default function DashboardPage() {
       }
 
       const [allReports, allTeams, stats, clusters] = await Promise.all([
-        api.getReports({ limit: 8 }),
+        api.getReports({ limit: 50 }),
         api.getMaintenanceTeams(),
         api.getAnalyticsSummary(),
         api.getHotspots(),
@@ -319,6 +319,15 @@ export default function DashboardPage() {
 
         {/* Action Toolbar: Print, CSV, Report */}
         <div className="flex flex-wrap items-center gap-2 no-print">
+          {currentUser?.role === "administrator" && (
+            <Link
+              href="/admin/reports"
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>All Reports &amp; Fixed</span>
+            </Link>
+          )}
           <a
             href={api.getExportCsvUrl()}
             download="freetown_infrastructure_reports.csv"
@@ -375,10 +384,10 @@ export default function DashboardPage() {
                 </h3>
               </div>
               <Link
-                href="/admin"
+                href="/admin/reports"
                 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1"
               >
-                <span>Full Management</span>
+                <span>View All &amp; Fixed Reports</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -445,6 +454,65 @@ export default function DashboardPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Fixed & Solved Reports Overview */}
+          <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-3xl p-6 border border-emerald-200 dark:border-emerald-800/80 shadow-sm space-y-4 transition-colors">
+            <div className="flex items-center justify-between pb-3 border-b border-emerald-200/70 dark:border-emerald-800/60">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-sm font-black text-emerald-950 dark:text-emerald-200 uppercase tracking-wider">
+                  Fixed &amp; Solved Infrastructure Reports (
+                  {reports.filter((r) => r.status === "Resolved" || r.status === "Closed").length})
+                </h3>
+              </div>
+              <Link
+                href="/admin/reports"
+                className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline flex items-center space-x-1"
+              >
+                <span>Open Full Fixed Registry</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            <div className="space-y-2.5">
+              {reports.filter((r) => r.status === "Resolved" || r.status === "Closed").length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-500 italic">
+                  No completed repairs recorded yet.
+                </div>
+              ) : (
+                reports
+                  .filter((r) => r.status === "Resolved" || r.status === "Closed")
+                  .slice(0, 4)
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-emerald-200/80 dark:border-emerald-800/60"
+                    >
+                      <div className="space-y-0.5 min-w-0 pr-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                            {r.tracking_number}
+                          </span>
+                          <StatusBadge status={r.status} size="sm" />
+                        </div>
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {r.title}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                          📍 {r.community} &bull; Updated {new Date(r.updated_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/track-report?tracking=${r.tracking_number}`}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex-shrink-0 transition"
+                      >
+                        View Fix
+                      </Link>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
 

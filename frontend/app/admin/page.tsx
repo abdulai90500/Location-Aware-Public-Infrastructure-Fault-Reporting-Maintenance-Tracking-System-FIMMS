@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   ShieldAlert, UserCheck, Filter, Search, RefreshCw, FileText,
   Activity, CheckCircle2, Clock, AlertTriangle, Download
@@ -15,7 +16,7 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<MaintenanceTeam[]>([]);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "assigned" | "audit">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "assigned" | "fixed" | "audit">("all");
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   // Search & Filter
@@ -28,6 +29,7 @@ export default function AdminPage() {
       setLoading(true);
       const [allReports, allTeams, stats] = await Promise.all([
         api.getReports({
+          limit: 200,
           search: searchTerm || undefined,
           status: statusFilter || (activeTab === "pending" ? "Submitted" : activeTab === "assigned" ? "Assigned" : undefined),
           community: communityFilter || undefined,
@@ -36,7 +38,12 @@ export default function AdminPage() {
         api.getAnalyticsSummary(),
       ]);
 
-      setReports(allReports);
+      const displayedReports =
+        activeTab === "fixed"
+          ? allReports.filter((r: FaultReport) => r.status === "Resolved" || r.status === "Closed")
+          : allReports;
+
+      setReports(displayedReports);
       setTeams(allTeams);
       setSummary(stats);
 
@@ -93,7 +100,15 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/reports"
+            className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white text-xs font-bold shadow-sm transition"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>All Reports &amp; Fixed Hub</span>
+          </Link>
+
           <a
             href={api.getExportCsvUrl(statusFilter, communityFilter)}
             download="freetown_infrastructure_reports.csv"
@@ -123,7 +138,8 @@ export default function AdminPage() {
           {/* Navigation Tabs */}
           <div className="flex items-center space-x-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
             {[
-              { id: "all", label: "All Complaints", count: reports.length },
+              { id: "all", label: "All Complaints", count: summary?.total_reports ?? reports.length },
+              { id: "fixed", label: "✓ Fixed & Solved", count: (summary?.resolved || 0) + (summary?.closed || 0) },
               { id: "pending", label: "Pending Verification", count: summary?.submitted || 0 },
               { id: "assigned", label: "Assigned Tasks", count: summary?.assigned || 0 },
               { id: "audit", label: "Audit Trail", count: undefined },

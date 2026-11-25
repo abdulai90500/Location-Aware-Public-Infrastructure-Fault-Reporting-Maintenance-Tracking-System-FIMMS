@@ -49,11 +49,20 @@ export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
     window.print();
   };
 
+  const isStaff =
+    currentUser &&
+    ["administrator", "maintenance_officer", "supervisor"].includes(currentUser.role);
+
   const getPageTitle = () => {
-    if (pathname === "/dashboard") return "Executive Municipal Dashboard";
+    if (pathname === "/dashboard") {
+      return currentUser?.role === "citizen"
+        ? "My Citizen Account Dashboard"
+        : "Executive Municipal Dashboard";
+    }
     if (pathname === "/report-fault") return "Citizen Fault Reporting Wizard";
     if (pathname === "/track-report") return "Incident Reference Tracker";
     if (pathname === "/map") return "GIS Spatial Infrastructure Map";
+    if (pathname === "/admin/reports") return "Admin: All Reports & Fixed Status";
     if (pathname === "/admin") return "Centralized Fault Management";
     if (pathname === "/maintenance") return "Field Maintenance Work Orders";
     if (pathname === "/supervisor") return "Supervisor Quality Sign-off";
@@ -112,15 +121,17 @@ export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
           <Printer className="w-4 h-4" />
         </button>
 
-        {/* Download CSV Button */}
-        <a
-          href={api.getExportCsvUrl()}
-          download="freetown_faults.csv"
-          className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          title="Download CSV database dump"
-        >
-          <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-        </a>
+        {/* Download CSV Button (Staff Only) */}
+        {isStaff && (
+          <a
+            href={api.getExportCsvUrl()}
+            download="freetown_faults.csv"
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            title="Download CSV database dump"
+          >
+            <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </a>
+        )}
 
         {/* Dark/Bright Mood Toggle */}
         <button

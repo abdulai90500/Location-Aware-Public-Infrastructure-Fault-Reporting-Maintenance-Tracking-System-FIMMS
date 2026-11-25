@@ -60,7 +60,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === "/login" || pathname === "/register";
   const staffOnlyPaths = ["/admin", "/maintenance", "/supervisor", "/analytics"];
   const isCitizenBlockedFromStaff =
-    currentUserRole === "citizen" && staffOnlyPaths.includes(pathname);
+    currentUserRole === "citizen" &&
+    staffOnlyPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (
     <ThemeProvider>

@@ -41,32 +41,61 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const isCitizen = currentUser?.role === "citizen";
+  const isStaff =
+    currentUser &&
+    ["administrator", "maintenance_officer", "supervisor"].includes(currentUser.role);
 
-  const navSections = [
+  const navSections: Array<{
+    title: string;
+    items: Array<{
+      label: string;
+      href: string;
+      icon: any;
+      badge?: string;
+      highlight?: boolean;
+      role?: string[];
+    }>;
+  }> = [
     {
-      title: isCitizen ? "My Citizen Account" : "Core Portals",
+      title: isCitizen ? "Citizen Portal" : "Core Portals",
       items: [
         {
-          label: isCitizen ? "My Account & Faults" : "Dashboard",
+          label: "Dashboard",
           href: "/dashboard",
           icon: LayoutDashboard,
-          badge: isCitizen ? "My Account" : "Live"
+          badge: isCitizen ? "My Account" : "Live",
         },
         { label: "Report a Fault", href: "/report-fault", icon: PlusCircle, highlight: true },
         { label: "Track Reference", href: "/track-report", icon: Search },
         { label: "GIS City Map", href: "/map", icon: MapPin },
-      ]
+      ],
     },
     {
-      title: "Municipal Operations",
+      title: "Admin & Municipal Operations",
       items: [
+        {
+          label: "All Reports & Fixed",
+          href: "/admin/reports",
+          icon: FileText,
+          badge: "Admin",
+          role: ["administrator"],
+        },
         { label: "Admin Management", href: "/admin", icon: ShieldAlert, role: ["administrator"] },
         { label: "Field Maintenance", href: "/maintenance", icon: Wrench, role: ["maintenance_officer", "administrator"] },
         { label: "Supervisor Hub", href: "/supervisor", icon: CheckCircle2, role: ["supervisor", "administrator"] },
         { label: "Analytics & SLA", href: "/analytics", icon: BarChart3, role: ["administrator", "supervisor"] },
-      ]
-    }
+      ],
+    },
   ];
+
+  const filteredSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => !item.role || (currentUser && item.role.includes(currentUser.role))
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const handlePrint = () => {
     window.print();
@@ -117,7 +146,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Scrollable Navigation Menu */}
           <div className="px-3 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-280px)]">
-            {navSections.map((section, sIdx) => (
+            {filteredSections.map((section, sIdx) => (
               <div key={sIdx} className="space-y-1">
                 <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {section.title}
@@ -160,18 +189,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* Quick Export & Print Actions */}
             <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Exports &amp; Reports
+                {isStaff ? "Exports & Reports" : "Print View"}
               </div>
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <a
-                  href={api.getExportCsvUrl()}
-                  download="freetown_infrastructure_faults.csv"
-                  className="flex items-center justify-center space-x-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition"
-                  title="Download CSV database dump"
-                >
-                  <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>CSV File</span>
-                </a>
+              <div className={`grid ${isStaff ? "grid-cols-2" : "grid-cols-1"} gap-2 pt-1`}>
+                {isStaff && (
+                  <a
+                    href={api.getExportCsvUrl()}
+                    download="freetown_infrastructure_faults.csv"
+                    className="flex items-center justify-center space-x-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition"
+                    title="Download CSV database dump"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>CSV File</span>
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={handlePrint}

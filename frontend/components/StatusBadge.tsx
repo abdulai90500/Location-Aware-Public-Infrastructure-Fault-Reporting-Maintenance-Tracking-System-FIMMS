@@ -17,9 +17,9 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
       case "In Progress":
         return "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-800";
       case "Resolved":
-        return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800";
+        return "bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700";
       case "Closed":
-        return "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+        return "bg-teal-100 text-teal-800 border-teal-400 dark:bg-teal-950/80 dark:text-teal-300 dark:border-teal-700";
       case "Rejected":
         return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800";
       case "On Hold":
@@ -29,18 +29,24 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     }
   };
 
+  const getLabel = () => {
+    if (status === "Resolved") return "✓ Fixed (Resolved)";
+    if (status === "Closed") return "✓ Fixed & Closed";
+    return status;
+  };
+
   const sizeClasses = {
-    sm: "px-2 py-0.5 text-xs font-medium",
-    md: "px-2.5 py-1 text-xs font-semibold",
-    lg: "px-3 py-1.5 text-sm font-semibold",
+    sm: "px-2 py-0.5 text-xs font-bold",
+    md: "px-2.5 py-1 text-xs font-bold",
+    lg: "px-3 py-1.5 text-sm font-bold",
   };
 
   return (
     <span
       className={`inline-flex items-center rounded-full border ${getColors()} ${sizeClasses[size]}`}
     >
-      <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-current opacity-70"></span>
-      {status}
+      <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-current opacity-80"></span>
+      {getLabel()}
     </span>
   );
 }
