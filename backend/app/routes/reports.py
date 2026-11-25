@@ -108,9 +108,12 @@ def list_reports(
     community: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    citizen_id: Optional[int] = Query(None),
+    mine: Optional[bool] = Query(False),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     query = db.query(FaultReport).options(
         joinedload(FaultReport.category),
@@ -119,6 +122,12 @@ def list_reports(
         selectinload(FaultReport.assignments).joinedload(MaintenanceAssignment.team),
         selectinload(FaultReport.updates).joinedload(MaintenanceUpdate.officer)
     )
+
+    # Filter to user's account if 'mine' requested or citizen_id passed
+    if mine and current_user:
+        query = query.filter(FaultReport.citizen_id == current_user.id)
+    elif citizen_id is not None:
+        query = query.filter(FaultReport.citizen_id == citizen_id)
 
     if category_id:
         query = query.filter(FaultReport.category_id == category_id)
@@ -139,6 +148,23 @@ def list_reports(
         )
 
     return query.order_by(desc(FaultReport.created_at)).offset(offset).limit(limit).all()
+
+
+@router.get("/my-reports", response_model=List[FaultReportResponse])
+def get_my_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns only the fault reports submitted by the authenticated citizen/user account.
+    """
+    return db.query(FaultReport).options(
+        joinedload(FaultReport.category),
+        joinedload(FaultReport.citizen),
+        selectinload(FaultReport.images),
+        selectinload(FaultReport.assignments).joinedload(MaintenanceAssignment.team),
+        selectinload(FaultReport.updates).joinedload(MaintenanceUpdate.officer)
+    ).filter(FaultReport.citizen_id == current_user.id).order_by(desc(FaultReport.created_at)).all()
 
 
 @router.get("/track/{tracking_number}", response_model=FaultReportResponse)
@@ -229,11 +255,12 @@ async def upload_report_image(
         shutil.copyfileobj(file.file, buffer)
 
     relative_url = f"/uploads/{safe_filename}"
+    default_caption = "Citizen voice note audio recording" if image_type == "audio_note" else f"{image_type.replace('_', ' ').capitalize()} photograph"
     img_record = ReportImage(
         report_id=report_id,
         image_url=relative_url,
         image_type=image_type,
-        caption=caption or f"{image_type.replace('_', ' ').capitalize()} photograph"
+        caption=caption or default_caption
     )
     db.add(img_record)
 

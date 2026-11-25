@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import {
   Camera, MapPin, Navigation, AlertTriangle, CheckCircle, Upload,
   Wrench, Lightbulb, Droplets, Footprints, Trash2, ShieldAlert, ArrowRight,
-  Sparkles, ThumbsUp, Layers, Copy, Check, Eye, Clock
+  Sparkles, ThumbsUp, Layers, Copy, Check, Eye, Clock,
+  Mic, MicOff, Square, Play, Pause, RotateCcw, Volume2, FileAudio, Radio
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Category, DuplicateCandidate, AIClassificationResult } from "@/types";
@@ -64,6 +65,172 @@ export default function FaultForm() {
   // Photo Evidence State
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Audio Input State (Voice Note Recording & Speech Dictation)
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+  const [isDictating, setIsDictating] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+  const timerRef = React.useRef<any>(null);
+  const recognitionRef = React.useRef<any>(null);
+
+  const formatDuration = (sec: number) => {
+    const mins = Math.floor(sec / 60).toString().padStart(2, "0");
+    const secs = (sec % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
+
+  // Start audio voice note recording
+  const startRecording = async () => {
+    setAudioError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setAudioError("Audio recording is not supported in this browser");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mimeType = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const type = mimeType || "audio/webm";
+        const blob = new Blob(audioChunksRef.current, { type });
+        const ext = type.includes("mp4") ? "m4a" : "webm";
+        const file = new File([blob], `voice_fault_${Date.now()}.${ext}`, { type });
+        const url = URL.createObjectURL(blob);
+        setAudioBlob(blob);
+        setAudioFile(file);
+        setAudioPreviewUrl(url);
+
+        if (!title.trim()) {
+          setTitle(`Voice Reported Fault - ${community}`);
+        }
+        if (!description.trim()) {
+          setDescription("Citizen provided a voice audio note recording detailing the fault location and conditions.");
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start(250);
+      setIsRecording(true);
+      setRecordSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.error("Microphone access error:", err);
+      setAudioError(err.message || "Could not access microphone. Please allow microphone permission.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const deleteRecording = () => {
+    if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    setAudioBlob(null);
+    setAudioFile(null);
+    setAudioPreviewUrl(null);
+    setRecordSeconds(0);
+  };
+
+  // Toggle live speech-to-text dictation
+  const toggleDictation = () => {
+    if (isDictating) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsDictating(false);
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setAudioError("Speech recognition is not supported in this browser. Please use Voice Note Recording instead.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsDictating(true);
+        setAudioError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          }
+        }
+        if (finalTranscript) {
+          setDescription((prev) => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${finalTranscript.trim()}` : finalTranscript.trim();
+          });
+          if (!title.trim()) {
+            setTitle(finalTranscript.slice(0, 60).trim());
+          }
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        if (e.error !== "no-speech") {
+          setAudioError(`Speech dictation notice: ${e.error}`);
+        }
+        setIsDictating(false);
+      };
+
+      recognition.onend = () => {
+        setIsDictating(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setAudioError("Could not start speech recognition. Use Voice Note Recording instead.");
+      setIsDictating(false);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
 
   // AI & Duplicate State
   const [aiResult, setAiResult] = useState<AIClassificationResult | null>(null);
@@ -226,6 +393,15 @@ export default function FaultForm() {
           await api.uploadReportImage(report.id, photoFile, "initial", "Initial photo submitted by citizen");
         } catch (imgErr) {
           console.warn("Image upload failed, report was still created:", imgErr);
+        }
+      }
+
+      // 3. Upload Voice Audio Recording if recorded
+      if (audioFile && report.id) {
+        try {
+          await api.uploadReportImage(report.id, audioFile, "audio_note", "Citizen voice note audio recording");
+        } catch (audErr) {
+          console.warn("Audio upload failed, report was still created:", audErr);
         }
       }
 
@@ -442,11 +618,111 @@ export default function FaultForm() {
         </div>
       </div>
 
-      {/* 2. Problem Details */}
+      {/* 2. Problem Details & Audio Input */}
       <div className="space-y-4">
         <label className="block text-sm font-bold text-slate-900 dark:text-white">
-          2. Fault Description &amp; Severity <span className="text-rose-500">*</span>
+          2. Fault Description, Audio Input &amp; Severity <span className="text-rose-500">*</span>
         </label>
+
+        {/* Voice & Audio Input Feature */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-sky-950/30 border border-emerald-200 dark:border-emerald-800 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                <Mic className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-emerald-950 dark:text-emerald-200">
+                  Voice &amp; Audio Reporting Input
+                </h4>
+                <p className="text-[11px] text-emerald-800 dark:text-emerald-400">
+                  Prefer to speak instead of type? Record a voice note or use real-time speech dictation below.
+                </p>
+              </div>
+            </div>
+            {isRecording && (
+              <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-white" />
+                <span>RECORDING {formatDuration(recordSeconds)}</span>
+              </span>
+            )}
+            {isDictating && (
+              <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
+                <Radio className="w-3 h-3 animate-spin" />
+                <span>LISTENING...</span>
+              </span>
+            )}
+          </div>
+
+          {audioError && (
+            <div className="text-[11px] text-rose-700 dark:text-rose-300 bg-rose-100/70 dark:bg-rose-950/50 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900">
+              {audioError}
+            </div>
+          )}
+
+          {/* Action Buttons for Audio Recording and Dictation */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            {/* Record Voice Memo Button */}
+            {!isRecording ? (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="py-2.5 px-3.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-xs font-bold transition flex items-center justify-center space-x-2 shadow-xs group"
+              >
+                <div className="w-3 h-3 rounded-full bg-rose-500 group-hover:bg-white transition" />
+                <span>Record Voice Note Memo</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="py-2.5 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center space-x-2 shadow-md animate-pulse"
+              >
+                <Square className="w-3.5 h-3.5" />
+                <span>Stop Recording ({formatDuration(recordSeconds)})</span>
+              </button>
+            )}
+
+            {/* Live Voice Dictation Button */}
+            <button
+              type="button"
+              onClick={toggleDictation}
+              className={`py-2.5 px-3.5 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-2 shadow-xs ${
+                isDictating
+                  ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 animate-pulse"
+                  : "bg-white dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700"
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>{isDictating ? "Stop Voice Dictation" : "Live Speech-to-Text"}</span>
+            </button>
+          </div>
+
+          {/* Recorded Audio Preview Player */}
+          {audioPreviewUrl && (
+            <div className="mt-2 p-3 bg-white dark:bg-slate-800 rounded-xl border border-emerald-300 dark:border-emerald-700 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                  <Volume2 className="w-4 h-4 text-emerald-600" />
+                  <span>Voice Note Attached ({formatDuration(recordSeconds)})</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={deleteRecording}
+                  className="text-[11px] font-bold text-rose-600 hover:underline flex items-center space-x-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Re-record / Delete</span>
+                </button>
+              </div>
+              <audio controls src={audioPreviewUrl} className="w-full h-8" />
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                ✓ Audio note will be uploaded and listened to by municipal field maintenance crews.
+              </p>
+            </div>
+          )}
+        </div>
+
         <div>
           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fault Title</label>
           <input

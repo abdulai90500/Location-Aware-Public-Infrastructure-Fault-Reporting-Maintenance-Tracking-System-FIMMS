@@ -95,6 +95,8 @@ export const api = {
     community?: string;
     severity?: string;
     search?: string;
+    citizen_id?: number;
+    mine?: boolean;
     limit?: number;
     offset?: number;
   }) {
@@ -104,10 +106,25 @@ export const api = {
     if (params?.community) query.append("community", params.community);
     if (params?.severity) query.append("severity", params.severity);
     if (params?.search) query.append("search", params.search);
+    if (params?.citizen_id) query.append("citizen_id", String(params.citizen_id));
+    if (params?.mine) query.append("mine", "true");
     if (params?.limit) query.append("limit", String(params.limit));
     if (params?.offset) query.append("offset", String(params.offset));
 
-    const res = await fetch(`${API_BASE}/api/reports?${query.toString()}`);
+    const res = await fetch(`${API_BASE}/api/reports?${query.toString()}`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse(res);
+  },
+
+  async getMyReports() {
+    const res = await fetch(`${API_BASE}/api/reports/my-reports`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
     return handleResponse(res);
   },
 

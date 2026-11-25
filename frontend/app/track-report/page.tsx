@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Search, MapPin, Calendar, Clock, AlertTriangle, CheckCircle2,
   Wrench, ShieldCheck, UserCheck, ArrowRight, Camera, ThumbsUp, Printer, Download,
-  Sparkles, Check, CheckCircle, Filter, Eye, RefreshCw
+  Sparkles, Check, CheckCircle, Filter, Eye, RefreshCw, Mic, Volume2, User
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { FaultReport } from "@/types";
@@ -26,10 +26,11 @@ function TrackReportContent() {
   // Public Community Feed State
   const [feedReports, setFeedReports] = useState<FaultReport[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"all" | "solved" | "active" | "pending">(
+  const [activeTab, setActiveTab] = useState<"all" | "my_reports" | "solved" | "active" | "pending">(
     initialTab === "solved" ? "solved" : "all"
   );
   const [communityFilter, setCommunityFilter] = useState("");
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   const reportDetailsRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +47,7 @@ function TrackReportContent() {
   };
 
   useEffect(() => {
+    setCurrentUser(api.getCurrentUser());
     loadFeedReports();
   }, []);
 
@@ -119,12 +121,21 @@ function TrackReportContent() {
   // Filter feed reports
   const filteredFeed = feedReports.filter((r) => {
     if (communityFilter && r.community !== communityFilter) return false;
+    if (activeTab === "my_reports") {
+      return (
+        r.citizen_id === currentUser?.id ||
+        (currentUser?.email && r.citizen?.email === currentUser.email)
+      );
+    }
     if (activeTab === "solved") return r.status === "Resolved" || r.status === "Closed";
     if (activeTab === "active") return r.status === "In Progress" || r.status === "Assigned";
     if (activeTab === "pending") return r.status === "Submitted" || r.status === "Under Review";
     return true;
   });
 
+  const myReportsCount = currentUser
+    ? feedReports.filter((r) => r.citizen_id === currentUser.id || r.citizen?.email === currentUser.email).length
+    : 0;
   const solvedCount = feedReports.filter((r) => r.status === "Resolved" || r.status === "Closed").length;
   const activeCount = feedReports.filter((r) => r.status === "In Progress" || r.status === "Assigned").length;
   const pendingCount = feedReports.filter((r) => r.status === "Submitted" || r.status === "Under Review").length;
@@ -376,30 +387,66 @@ function TrackReportContent() {
             </div>
           </div>
 
-          {/* Photographic Evidence Gallery */}
+          {/* Photographic & Audio Evidence Gallery */}
           {report.images && report.images.length > 0 && (
             <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center space-x-2">
                 <Camera className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Photographic Evidence</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Evidence &amp; Media Attachments</h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {report.images.map((img) => (
-                  <div key={img.id} className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 space-y-2 p-2">
-                    <img
-                      src={img.image_url}
-                      alt={img.caption || "Fault evidence"}
-                      className="w-full h-44 object-cover rounded-xl"
-                    />
-                    <div className="px-1 text-[11px]">
-                      <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">
-                        {img.image_type.replace("_", " ")}:
-                      </span>{" "}
-                      <span className="text-slate-500 dark:text-slate-400">{img.caption}</span>
+                {report.images.map((img) => {
+                  const isAudio =
+                    img.image_type === "audio_note" ||
+                    img.image_url.endsWith(".webm") ||
+                    img.image_url.endsWith(".wav") ||
+                    img.image_url.endsWith(".mp3") ||
+                    img.image_url.endsWith(".m4a") ||
+                    img.image_url.endsWith(".ogg");
+
+                  const fullMediaUrl = img.image_url.startsWith("http")
+                    ? img.image_url
+                    : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${img.image_url}`;
+
+                  return (
+                    <div
+                      key={img.id}
+                      className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 space-y-2 p-3 flex flex-col justify-between"
+                    >
+                      {isAudio ? (
+                        <div className="space-y-3 py-2">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                              <Mic className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white">
+                                Citizen Voice Note Audio
+                              </div>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                Audio Evidence Recording
+                              </div>
+                            </div>
+                          </div>
+                          <audio controls src={fullMediaUrl} className="w-full h-9" />
+                        </div>
+                      ) : (
+                        <img
+                          src={fullMediaUrl}
+                          alt={img.caption || "Fault evidence"}
+                          className="w-full h-44 object-cover rounded-xl"
+                        />
+                      )}
+                      <div className="px-1 text-[11px] pt-1 border-t border-slate-200 dark:border-slate-700">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 capitalize">
+                          {img.image_type.replace("_", " ")}:
+                        </span>{" "}
+                        <span className="text-slate-500 dark:text-slate-400">{img.caption}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -475,6 +522,19 @@ function TrackReportContent() {
         {/* Tab Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+            {currentUser && (
+              <button
+                onClick={() => setActiveTab("my_reports")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
+                  activeTab === "my_reports"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>My Account Reports ({myReportsCount})</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("all")}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${

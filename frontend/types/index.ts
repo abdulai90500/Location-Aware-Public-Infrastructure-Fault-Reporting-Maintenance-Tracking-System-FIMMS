@@ -21,7 +21,7 @@ export interface ReportImage {
   id: number;
   report_id: number;
   image_url: string;
-  image_type: "initial" | "before_repair" | "after_repair";
+  image_type: "initial" | "before_repair" | "after_repair" | "audio_note" | string;
   caption?: string;
   uploaded_at: string;
 }

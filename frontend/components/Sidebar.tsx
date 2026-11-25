@@ -40,11 +40,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   };
 
+  const isCitizen = currentUser?.role === "citizen";
+
   const navSections = [
     {
-      title: "Core Portals",
+      title: isCitizen ? "My Citizen Account" : "Core Portals",
       items: [
-        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, badge: "Live" },
+        {
+          label: isCitizen ? "My Account & Faults" : "Dashboard",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+          badge: isCitizen ? "My Account" : "Live"
+        },
         { label: "Report a Fault", href: "/report-fault", icon: PlusCircle, highlight: true },
         { label: "Track Reference", href: "/track-report", icon: Search },
         { label: "GIS City Map", href: "/map", icon: MapPin },
@@ -56,7 +63,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: "Admin Management", href: "/admin", icon: ShieldAlert, role: ["administrator"] },
         { label: "Field Maintenance", href: "/maintenance", icon: Wrench, role: ["maintenance_officer", "administrator"] },
         { label: "Supervisor Hub", href: "/supervisor", icon: CheckCircle2, role: ["supervisor", "administrator"] },
-        { label: "Analytics & SLA", href: "/analytics", icon: BarChart3 },
+        { label: "Analytics & SLA", href: "/analytics", icon: BarChart3, role: ["administrator", "supervisor"] },
       ]
     }
   ];

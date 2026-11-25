@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   Activity, ShieldAlert, Wrench, CheckCircle2, MapPin, PlusCircle,
   Search, Printer, Download, ArrowRight, Clock, AlertTriangle,
-  Flame, Filter, Eye, RefreshCw, Sparkles, Building2
+  Flame, Filter, Eye, RefreshCw, Sparkles, Building2, Mic, Volume2,
+  User as UserIcon, Lock, CheckCircle
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { FaultReport, MaintenanceTeam, AnalyticsSummary, HotspotCluster, User } from "@/types";
@@ -24,6 +25,23 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      const user = api.getCurrentUser();
+      setCurrentUser(user);
+
+      if (user && user.role === "citizen") {
+        // Strict citizen isolation: Citizen sees their account only!
+        const [myReports, stats] = await Promise.all([
+          api.getMyReports().catch(() => api.getReports({ mine: true })),
+          api.getAnalyticsSummary().catch(() => null),
+        ]);
+        setReports(myReports || []);
+        setSummary(stats);
+        setTeams([]);
+        setHotspots([]);
+        setLoading(false);
+        return;
+      }
+
       const [allReports, allTeams, stats, clusters] = await Promise.all([
         api.getReports({ limit: 8 }),
         api.getMaintenanceTeams(),
@@ -34,7 +52,6 @@ export default function DashboardPage() {
       setTeams(allTeams);
       setSummary(stats);
       setHotspots(clusters || []);
-      setCurrentUser(api.getCurrentUser());
       setLoading(false);
     } catch (err) {
       console.error("Dashboard data load error:", err);
@@ -53,6 +70,212 @@ export default function DashboardPage() {
   const pendingReports = reports.filter((r) => r.status === "Submitted" || r.status === "Under Review");
   const inProgressReports = reports.filter((r) => r.status === "Assigned" || r.status === "In Progress");
   const resolvedReports = reports.filter((r) => r.status === "Resolved");
+
+  // Dedicated Citizen Account View (Isolated to user's reports only)
+  if (currentUser && currentUser.role === "citizen") {
+    const myTotal = reports.length;
+    const mySolved = reports.filter((r) => r.status === "Resolved" || r.status === "Closed").length;
+    const myActive = reports.filter((r) => r.status === "In Progress" || r.status === "Assigned").length;
+    const myPending = reports.filter((r) => r.status === "Submitted" || r.status === "Under Review").length;
+
+    return (
+      <div className="space-y-8 max-w-6xl mx-auto">
+        {/* Citizen Account Profile Header */}
+        <div className="bg-white dark:bg-[#1E293B] p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-sky-600 text-white font-black text-xl flex items-center justify-center shadow-md">
+                {currentUser.full_name ? currentUser.full_name.charAt(0) : "C"}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    {currentUser.full_name}
+                  </h1>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                    Citizen Account
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {currentUser.email} &bull; Western Area Urban Resident
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Link
+                href="/report-fault"
+                className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>Report New Fault</span>
+              </Link>
+              <button
+                onClick={loadData}
+                disabled={loading}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition"
+                title="Refresh My Reports"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Account Privacy & Isolation Notice */}
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300">
+            <Lock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>
+              <strong>Personal Account Isolation:</strong> You are viewing only the complaints and tracking dockets registered under your citizen profile.
+            </span>
+          </div>
+        </div>
+
+        {/* Citizen Metrics Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Total Reported
+            </span>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+              {myTotal}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Solved &amp; Verified
+            </span>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-1">
+              {mySolved}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              Active Repairs
+            </span>
+            <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300 mt-1">
+              {myActive}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              Under Review
+            </span>
+            <div className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300 mt-1">
+              {myPending}
+            </div>
+          </div>
+        </div>
+
+        {/* My Reported Faults Table */}
+        <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center space-x-2">
+              <Wrench className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                My Lodged Complaints ({reports.length})
+              </h3>
+            </div>
+            <Link
+              href="/track-report"
+              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-1"
+            >
+              <span>Track All Statuses</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-slate-800">
+                <tr>
+                  <th className="py-2.5 px-3">Tracking Number</th>
+                  <th className="py-2.5 px-3">Incident Title &amp; Community</th>
+                  <th className="py-2.5 px-3">Date Submitted</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                {reports.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="max-w-sm mx-auto space-y-3">
+                        <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                          <PlusCircle className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                          No Fault Reports Lodged Yet
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Spot a pothole, burst water pipe, or broken streetlight? Report it instantly using your microphone or photos.
+                        </p>
+                        <Link
+                          href="/report-fault"
+                          className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Lodge a Report Now</span>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  reports.map((r) => {
+                    const hasAudio = r.images?.some(
+                      (img) =>
+                        img.image_type === "audio_note" ||
+                        img.image_url?.endsWith(".webm") ||
+                        img.image_url?.endsWith(".wav") ||
+                        img.image_url?.endsWith(".mp3")
+                    );
+
+                    return (
+                      <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                          <Link href={`/track-report?tracking=${r.tracking_number}`} className="hover:underline">
+                            {r.tracking_number}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                            <span>{r.title}</span>
+                            {hasAudio && (
+                              <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold" title="Voice note attached">
+                                <Volume2 className="w-3 h-3" />
+                                <span>Voice Note</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            📍 {r.community} {r.location_name ? `• ${r.location_name}` : ""}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-500">
+                          {new Date(r.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-3">
+                          <StatusBadge status={r.status} size="sm" />
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <Link
+                            href={`/track-report?tracking=${r.tracking_number}`}
+                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center space-x-1 transition shadow-xs"
+                          >
+                            <span>Track</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
